@@ -22,10 +22,10 @@ const main = async () => {
   }
   const testUser = new hre.ethers.Wallet(process.env.TEST_USER_PKEY, hre.ethers.provider);
 
-  const xrefi = await hre.ethers.getContractAt("XRefiHelper", local.teleporter.address);
+  const xrefi = await hre.ethers.getContractAt("XRefiHelper", local.xrefi.address);
 
   // execute xcall with Connext
-  console.log(`...begin 'initiateLoanTransfer()' xcall on ${CHAIN_A_NAME} teleporter`);
+  console.log(`...begin 'initiateLoanTransfer()' xcall on ${CHAIN_A_NAME} xrefi`);
   let tx = await xrefi.connect(testUser).repayAndTransfer(
     connextParams.goerli.domainId, // originDomain
     connextParams.mumbai.domainId, // destinantionDomain

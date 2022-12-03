@@ -11,24 +11,24 @@ const main = async () => {
   console.log(CHAIN_NAME);
   const goerli = await readDeployments("goerli");
 
-  // Get rinkeby teleporter
+  // Get rinkeby xrefi
   const local = deployedRinkebyData;
   console.log(`...setting up the ${CHAIN_NAME} XRefinancer`);
-  const teleporter = await hre.ethers.getContractAt("XRefinancer", local.teleporter.address);
-  let tx = await teleporter.setLoanProvider(local.connextDomainId, local.loanProvider.address, true);
+  const xrefi = await hre.ethers.getContractAt("XRefinancer", local.xrefi.address);
+  let tx = await xrefi.setLoanProvider(local.connextDomainId, local.loanProvider.address, true);
   await tx.wait();
   console.log(`...recorded ${local.chain} loan provider`);
 
   const ref = deployedKovanData;
-  tx = await teleporter.setLoanProvider(ref.connextDomainId, ref.loanProvider.address, true);
+  tx = await xrefi.setLoanProvider(ref.connextDomainId, ref.loanProvider.address, true);
   await tx.wait();
   console.log(`...recorded ${ref.chain} loan provider`);
-  tx = await teleporter.setTeleporter(ref.connextDomainId, ref.teleporter.address);
+  tx = await xrefi.setxrefi(ref.connextDomainId, ref.xrefi.address);
   await tx.wait();
-  console.log(`...recorded ${ref.chain} teleporter`);
+  console.log(`...recorded ${ref.chain} xrefi`);
 
 //   console.log(`...setting connext ${CHAIN_NAME} test token ${CONNEXT_RINKEBY_TEST_TOKEN}`);
-//   tx = await teleporter.setTestToken(CONNEXT_RINKEBY_TEST_TOKEN);
+//   tx = await xrefi.setTestToken(CONNEXT_RINKEBY_TEST_TOKEN);
 //   tx.wait();
 //   console.log(`...test token set complete!`);
 }

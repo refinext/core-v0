@@ -17,17 +17,17 @@ const providers = {
 
 const main = async() => {
   console.log(CHAIN_NAME);
-  const Teleporter = await hre.ethers.getContractFactory("XRefiHelper");
-  const teleporter = await Teleporter.deploy(
+  const _xrefi = await hre.ethers.getContractFactory("XRefiHelper");
+  const xrefi = await _xrefi.deploy(
     CONNEXT_RINKEBY_HANDLER
   );
 
-  await teleporter.deployed();
-  console.log("Teleporter deployed to:", teleporter.address);
+  await xrefi.deployed();
+  console.log("xrefi deployed to:", xrefi.address);
 
   const AaveV3 = await hre.ethers.getContractFactory("AaveV3");
   const aavev3 = await AaveV3.deploy(
-    teleporter.address,
+    xrefi.address,
     providers.rinkeby.aavev3.pool,
     providers.rinkeby.aavev3.dataProvider
   );
@@ -47,7 +47,7 @@ const main = async() => {
   let newdeployData = {
     chain: CHAIN_NAME,
     connextDomainId: connextParams.rinkeby.domainId,
-    teleporter: {address: teleporter.address},
+    xrefi: {address: xrefi.address},
     loanProvider: {address: aavev3.address}
   }
 

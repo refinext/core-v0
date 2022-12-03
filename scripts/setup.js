@@ -24,7 +24,7 @@ const main = async () => {
   }
   const testUser = new hre.ethers.Wallet(process.env.TEST_USER_PKEY, hre.ethers.provider);
 
-  const teleporter = await hre.ethers.getContractAt("Teleporter", local.teleporter.address);
+  const teleporter = await hre.ethers.getContractAt("XRefi", local.teleporter.address);
   const aaveV3provider = await hre.ethers.getContractAt("AaveV3", local.loanProvider.address);
   const realAaveV3 = await hre.ethers.getContractAt("IAaveV3Pool", await aaveV3provider.aavePool());
   const debtToken = await hre.ethers.getContractAt("IERC20Mintable", DEBT_ASSET);
