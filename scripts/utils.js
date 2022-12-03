@@ -77,9 +77,6 @@ const readDeployments = async (chain) => {
 module.exports = {
   updateDeployments,
   readDeployments,
-  aaveV3Mappings,
-  aaveV2Mappings,
-  compoundMappings,
   connextParams,
   testParams
 }

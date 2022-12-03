@@ -1,30 +1,59 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// You can also run a script with `npx hardhat run <script>`. If you do that, Hardhat
-// will compile your contracts, add the Hardhat Runtime Environment's members to the
-// global scope, and execute the script.
 const hre = require("hardhat");
+const fs = require("fs");
 
-async function main() {
-  const currentTimestampInSeconds = Math.round(Date.now() / 1000);
-  const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
-  const unlockTime = currentTimestampInSeconds + ONE_YEAR_IN_SECS;
+const {updateDeployments, aaveV3Mappings, connextParams} = require("./utils");
 
-  const lockedAmount = hre.ethers.utils.parseEther("1");
+const CHAIN_NAME='goerli';
+const CONNEXT_RINKEBY_HANDLER = connextParams.rinkeby.handler;
 
-  const Lock = await hre.ethers.getContractFactory("XRefi");
-  const lock = await Lock.deploy( , { value: lockedAmount });
+const providers = {
+  rinkeby: {
+    aavev3: {
+      pool: "0xE039BdF1d874d27338e09B55CB09879Dedca52D8",
+      dataProvider: "0xBAB2E7afF5acea53a43aEeBa2BA6298D8056DcE5",
+    },
+  },
+};
 
-  await lock.deployed("");
-
-  console.log(
-    `Lock with 1 ETH and unlock timestamp ${unlockTime} deployed to ${lock.address}`
+const main = async() => {
+  console.log(CHAIN_NAME);
+  const Teleporter = await hre.ethers.getContractFactory("XRefiHelper");
+  const teleporter = await Teleporter.deploy(
+    CONNEXT_RINKEBY_HANDLER
   );
+
+  await teleporter.deployed();
+  console.log("Teleporter deployed to:", teleporter.address);
+
+  const AaveV3 = await hre.ethers.getContractFactory("AaveV3");
+  const aavev3 = await AaveV3.deploy(
+    teleporter.address,
+    providers.rinkeby.aavev3.pool,
+    providers.rinkeby.aavev3.dataProvider
+  );
+
+  await aavev3.deployed();
+  console.log("AaveV3 deployed to:", aavev3.address);
+
+  let tx;
+  for (const asset of Object.values(aaveV3Mappings)) {
+    tx = await aavev3.addATokenMapping(asset.address, asset.aToken);
+    await tx.wait();
+    tx = await aavev3.addDebtTokenMapping(asset.address, asset.debtToken);
+    await tx.wait();
+  }
+  console.log("AaveV3 asset mappings ready!");
+
+  let newdeployData = {
+    chain: CHAIN_NAME,
+    connextDomainId: connextParams.rinkeby.domainId,
+    teleporter: {address: teleporter.address},
+    loanProvider: {address: aavev3.address}
+  }
+
+  await updateDeployments(CHAIN_NAME, newdeployData);
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1;

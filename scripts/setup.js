@@ -6,10 +6,10 @@ const CHAIN_NAME = 'goerli';
 
 const { readDeployments, testParams } = require("./utils");
 
-const COLLATERAL_ASSET = testParams.testAssets.rinkeby.collateral;
+const COLLATERAL_ASSET = testParams.testAssets.goerli.collateral;
 const COLLATERAL_AMOUNT = testParams.testAmounts.collateralAmount;
-const COLLATERAL_RECEIPT_TOKEN = testParams.testAssets.rinkeby.collateralReceiptToken;
-const DEBT_ASSET = testParams.testAssets.rinkeby.debt;
+const COLLATERAL_RECEIPT_TOKEN = testParams.testAssets.goerli.collateralReceiptToken;
+const DEBT_ASSET = testParams.testAssets.goerli.debt;
 const DEBT_AMOUNT = testParams.testAmounts.debtAmount;
 const LIQUIDITY_AMOUNT = testParams.testAmounts.liquidityAmount;
 
