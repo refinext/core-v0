@@ -12,14 +12,7 @@ import "./interfaces.sol";
 import "./events.sol";
 
 abstract contract XRefiHelper is ERC1155, Ownable, Pausable, Events {
-    //infinte liquidity ---
-    //refinance to aave
-    //repay on chain 1
-    //transfer to chain2
-    //getback on chain2
     IConnext public immutable connext;
-
-    address public testToken;
     bool public xCallArrived;
     uint256 public val;
 
@@ -31,10 +24,6 @@ abstract contract XRefiHelper is ERC1155, Ownable, Pausable, Events {
 
     mapping(uint32 => address) public xrefinancers;
 
-    function setTestToken(address _testToken) external onlyOwner {
-        testToken = _testToken;
-    }
-
     function setRefinancers(uint32 _domain, address _financer)
         external
         onlyOwner
@@ -45,44 +34,19 @@ abstract contract XRefiHelper is ERC1155, Ownable, Pausable, Events {
     /**
      *@dev adds liquidity to the contract which will be useful for repayment.
      */
-    function liquidityIn(
-        address[] memory tokens_,
-        uint256[] memory amounts_,
-        address onBehalfOf_
-    ) public {
-        //add liquidity to this contract
-        uint256 len_ = tokens_.length;
-        require(amounts_.length == len_, "length-mismatch");
-
-        for (uint256 i = 0; i < len_; i++) {
-            IERC20(tokens_[i]).transferFrom(
-                onBehalfOf_,
-                address(this),
-                amounts_[i]
-            );
-            _mint(onBehalfOf_, uint256(uint160(tokens_[i])), amounts_[i], "");
-            emit LiquidityAdded(tokens_[i], amounts_[i], onBehalfOf_);
-        }
+    function liquidityIn(address token_, uint256 amount_) public {
+        IERC20(token_).transferFrom(msg.sender, address(this), amount_);
+        // _mint(msg.sender, uint256(uint160(token_)), amount_, "");
+        emit LiquidityAdded(token_, amount_, msg.sender);
     }
 
     /**
      *@dev removes liquidity from the contract.
      */
-    function liquidityOut(
-        address[] memory tokens_,
-        uint256[] memory amounts_,
-        address onBehalfOf_
-    ) public {
-        uint256 len_ = tokens_.length;
-        require(amounts_.length == len_, "length-mismatch");
-
-        for (uint256 i = 0; i < len_; i++) {
-            address token_ = tokens_[i];
-            uint256 amount_ = amounts_[i];
-            _burn(onBehalfOf_, uint256(uint160(token_)), amount_);
-            IERC20(token_).transfer(onBehalfOf_, amount_);
-            emit LiquidityRemoved(token_, amount_, onBehalfOf_);
-        }
+    function liquidityOut(address token_, uint256 amount_) public {
+        _burn(msg.sender, uint256(uint160(token_)), amount_);
+        IERC20(token_).transfer(msg.sender, amount_);
+        emit LiquidityRemoved(token_, amount_, msg.sender);
     }
 
     //TODO integrate biconomy batch transaction
@@ -91,21 +55,16 @@ abstract contract XRefiHelper is ERC1155, Ownable, Pausable, Events {
         uint32 dest_,
         address srcProtocol_,
         address destProtocol_,
-        address[] memory collaterals_,
-        address[] memory debts_,
-        uint256[] memory collAmts_,
-        uint256[] memory debtAmts_
+        address collateral_,
+        address debt_,
+        uint256 collAmt_,
+        uint256 debtAmt_
     ) external {
         IProtocol lp = IProtocol(srcProtocol_);
 
-        for (uint256 i = 0; i < debts_.length; i++) {
-            (address aDebt, address dtoken, address vtoken) = IAaveProtocolDataProvider(
-                0x9BE876c6DC42215B00d7efe892E2691C3bc35d10
-            ).getReserveTokensAddresses(debts_[i]);
-            IERC20(aDebt).transfer(srcProtocol_, debtAmts_[i]);
-            lp.paybackOnBehalf(debts_[i], debtAmts_[i], msg.sender);
-            lp.withdrawOnBehalf(collaterals_[i], collAmts_[i], msg.sender);
-        }
+        IERC20(debt_).transfer(srcProtocol_, debtAmt_);
+        lp.paybackOnBehalf(debt_, debtAmt_, msg.sender);
+        lp.withdrawOnBehalf(collateral_, collAmt_, msg.sender);
 
         bytes memory callData = abi.encodeWithSelector(
             bytes4(
@@ -115,49 +74,53 @@ abstract contract XRefiHelper is ERC1155, Ownable, Pausable, Events {
             ),
             srcProtocol_,
             destProtocol_,
-            collaterals_,
-            collAmts_,
-            debts_,
-            debtAmts_,
+            collateral_,
+            collAmt_,
+            debt_,
+            debtAmt_,
             msg.sender
         );
 
-        IConnext.CallParams memory callParams = IConnext.CallParams({
-            _destination: xrefinancers[dest_],
-            _to: xrefinancers[dest_],
-            _asset: collaterals, /////////////////////////switch to single token
-            _delegate: msg.sender,
-            _amount: amounts_,
-            _slippage: 5,
-            _callData: callData
-        });
-
-        connext.xcall(xcallArgs);
+        connext.xcall(
+            dest_,
+            xrefinancers[dest_],
+            collateral_,
+            msg.sender,
+            collAmt_,
+            5,
+            callData
+        );
     }
 
-    function xReceive(
-    uint32 origin_,
-    address destProtocol_,
-    address[] memory collaterals_,
-    uint256[] memory collAmts_,
-    address[] memory debts_,
-    uint256[] memory debtAmts_,
-    address user
-  ) external {
+    function createDestPos(
+        uint32 origin_,
+        address destProtocol_,
+        address collateral_,
+        uint256 collateralAmount_,
+        address debt_,
+        uint256 debtAmount_,
+        address user
+    ) external {
+        xCallArrived = !xCallArrived;
+        val = debtAmount_;
+        emit xRefinance(msg.sender);
+        require(
+            // origin domain of the source contract
+            IExecutor(msg.sender).origin() == origin_,
+            "Expected origin domain"
+        );
+        require(
+            // msg.sender of xcall from the origin domain
+            IExecutor(msg.sender).originSender() == xrefinancers[origin_],
+            "Expected origin domain contract"
+        );
 
-
-    xCallArrived = !xCallArrived;
-    val = debtAmount;
-
-    emit xRefinance(msg.sender);
-
-    // IProtocol lp = IProtocol(destProtocol_);
-    // IERC20Mintable erc20 = IERC20Mintable(collateralAsset);
-    // erc20.mint(collateralAmount); 
-    // erc20.transfer(address(lProvider), collateralAmount);
-    // lProvider.depositOnBehalf(collateralAsset, collateralAmount, address(this));
-
-    // // 2.2 - borrow
-    // IDebtToken(lProvider.debtTokenMap(debtAsset)).approveDelegation(address(lProvider), debtAmount);
-    // lProvider.borrowOnBehalf(debtAsset, debtAmount, address(this));
+        IProtocol loanProvider = IProtocol(destProtocol_);
+        IERC20Mintable(collateral_).allocateTo(
+            destProtocol_,
+            collateralAmount_
+        );
+        loanProvider.depositOnBehalf(collateral_, collateralAmount_, user);
+        loanProvider.borrowOnBehalf(debt_, debtAmount_, user);
+    }
 }
