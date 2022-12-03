@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./../interfaces.sol";
 
 contract AaveV3 is IProtocol, Ownable {
-    address public constant NATIVE_ASSET =
-        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    // address public constant NATIVE_ASSET =
+    //     0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     IAaveV3Pool public aavePool;
     IAaveProtocolDataProvider public dataProvider;
@@ -30,7 +30,7 @@ contract AaveV3 is IProtocol, Ownable {
         dataProvider = IAaveProtocolDataProvider(_dataProvider);
     }
 
-    function setTeleporter(address _xrefinancer) external onlyOwner {
+    function setRefinancer(address _xrefinancer) external onlyOwner {
         xrefinancer = _xrefinancer;
     }
 

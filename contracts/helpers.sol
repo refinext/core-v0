@@ -4,14 +4,14 @@ pragma solidity ^0.8.4;
 // Import this file to use console.log
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+// import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+// import "@openzeppelin/contracts/security/Pausable.sol";
 
 import "./interfaces.sol";
 import "./events.sol";
 
-abstract contract XRefiHelper is ERC1155, Ownable, Pausable, Events {
+contract XRefiHelper is Ownable, Events {
     IConnext public immutable connext;
     bool public xCallArrived;
     uint256 public val;
@@ -120,6 +120,7 @@ abstract contract XRefiHelper is ERC1155, Ownable, Pausable, Events {
             destProtocol_,
             collateralAmount_
         );
+
         loanProvider.depositOnBehalf(collateral_, collateralAmount_, user);
         loanProvider.borrowOnBehalf(debt_, debtAmount_, user);
     }
